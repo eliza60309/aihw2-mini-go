@@ -6,98 +6,56 @@ int enemybreath(bool[][5], short[][5], int, pair<int, int>, vector<pair<int, int
 int capture(short[][5], int, pair<int, int>);
 int allybreath(bool[][5], short[][5], int, pair<int, int>);
 int get_legal(short[][5], short[][5], int, vector<pair<int, int> >&);
+int diffboard(short board1[][5], short board2[][5]);
+int move(pair<int, int>);
+int eval(short[][5]);
 
 int main()
 {
 	short previous[5][5] = {}; 
 	short board[5][5] = {};//yx
-	int phase = 1;//1: black 2: white
-	int step = 0;
 	int player;
-	fstream in, log;
-	//log.open("log.txt", fstream::out | fstream::ate | fstream::app);
-	//log << "GAME START" << endl;
-	//log.close();
+	bool passed = false;
+	fstream in;
 	while(!in.is_open())
 		in.open("input.txt", fstream::in);
 	in >> player;
-	//log.open("log.txt", fstream::out | fstream::ate | fstream::app);
-	//log << "I AM " << player << endl;
-	//log.close();
-	in.close();
-	if(player == 2)
-		step = 2;
-	else
-		step = 1;
-	//while(1)
+	for(int i = 0; i < 5; i++)
 	{
-		while(!in.is_open())
-			in.open("input.txt", fstream::in);
-		in >> player;
-		//log.open("log.txt", fstream::out | fstream::ate | fstream::app);
-		int x, y;
-		for(int i = 0; i < 5; i++)
+		for(int j = 0; j < 5; j++)
 		{
-			for(int j = 0; j < 5; j++)
-			{
-				char c = 0;
-				while(c < '0' || c > '9')
-					in >> c;
-				previous[i][j] = c - '0';
-			}
-		}
-		for(int i = 0; i < 5; i++)
-		{
-			for(int j = 0; j < 5; j++)
-			{
-				char c = 0;
-				while(c < '0' || c > '9')
-					in >> c;
-				board[i][j] = c - '0';
-			}
-		}
-		in.close();
-		remove("input.txt");
-		/*if(step - 1 > 0)
-		{
-			log << "----- Step " << step - 1 << " -----" << endl;
-			for(int i = 0; i < 5; i++)
-			{
-				for(int j = 0; j < 5; j++)
-					log << previous[i][j] << " ";
-				log << endl;
-			}
-		}
-		log << "----- Step " << step << " -----" << endl;
-		for(int i = 0; i < 5; i++)
-		{
-			for(int j = 0; j < 5; j++)
-				log << board[i][j] << " ";
-			log << endl;
-		}
-		log.close();*/
-		phase = player;
-		vector<pair<int, int> >legal_moves;
-		get_legal(board, previous, phase, legal_moves);
-		if(legal_moves.size())
-		{
-			srand(time(NULL));
-			int move = rand() % legal_moves.size();
-			fstream out;
-			out.open("output.txt", fstream::out);
-			out << legal_moves[move].first << "," << legal_moves[move].second;
-			step += 2;
-			out.close();
-		}
-		else
-		{
-			fstream out;
-			out.open("output.txt", fstream::out);
-			out << "PASS";
-			step += 2;
-			out.close();
+			char c = 0;
+			while(c < '0' || c > '9')
+				in >> c;
+			previous[i][j] = c - '0';
 		}
 	}
+	for(int i = 0; i < 5; i++)
+	{
+		for(int j = 0; j < 5; j++)
+		{
+			char c = 0;
+			while(c < '0' || c > '9')
+				in >> c;
+			board[i][j] = c - '0';
+		}
+	}
+	in.close();
+	if(!diffboard(board, previous) && eval(board) == player)
+	{
+		move(pair<int, int>(-1, -1));
+		return 0;
+	}
+	vector<pair<int, int> >legal_moves;
+	get_legal(board, previous, player, legal_moves);
+	if(legal_moves.size())
+	{
+		srand(time(NULL));
+		int i = rand() % legal_moves.size();
+		move(legal_moves[i]);
+	}
+	else
+		move(pair<int, int>(-1, -1));
 }
 
 
@@ -260,20 +218,7 @@ int get_legal(short board[][5], short previous[][5], int phase, vector<pair<int,
 				if(capture(tmpboard, phase, pair<int, int>(i, j)) == 1)
 				{
 					tmpboard[i][j] = phase;
-					diff = false;
-					for(int k = 0; k < 5; k++)
-					{
-						for(int l = 0; l < 5; l++)
-						{
-							if(tmpboard[k][l] != previous[k][l])
-							{
-								diff = true;
-								break;
-							}
-						}
-						if(diff)
-							break;
-					}
+					diff = diffboard(tmpboard, previous);
 				}
 				if(!diff)
 					continue;
@@ -283,5 +228,47 @@ int get_legal(short board[][5], short previous[][5], int phase, vector<pair<int,
 			}
 		}
 	}
+	return 0;
+}
+
+int diffboard(short board1[][5], short board2[][5])
+{
+	for(int i = 0; i < 5; i++)
+	{
+		for(int j = 0; j < 5; j++)
+		{
+			if(board1[i][j] != board2[i][j])
+				return true;
+		}
+	}
+	return false;
+}
+
+int eval(short board[][5])
+{
+	int black = 0, white = 0;
+	for(int i = 0; i < 5; i++)
+	{
+		for(int j = 0; j < 5; j++)
+			if(board[i][j] == 1)
+				black++;
+			else if(board[i][j] == 2)
+				white++;
+	}
+	if((double)white + 2.5 > black)
+		return 2;
+	else 
+		return 1;
+}
+
+int move(pair<int, int> m)
+{
+	fstream out;
+	out.open("output.txt", fstream::out);
+	if(m.first == -1 || m.second == -1)
+		out << "PASS";
+	else
+		out << m.first << "," << m.second;
+	out.close();
 	return 0;
 }

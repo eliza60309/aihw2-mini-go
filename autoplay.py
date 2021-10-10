@@ -1,13 +1,17 @@
 import subprocess
 import os
 
-
+#Just keep playing
+'''
+for i in range(10000):
+	rslt = subprocess.run(['./bin/newhost', './bin/newrandomplayer', './bin/newrandomplayer'])
+'''
 #Counts the winning
 '''
 player1 = 0
 player2 = 0
 for i in range(100):
-	rslt = subprocess.run('./host', stdout = subprocess.PIPE)
+	rslt = subprocess.run('./bin/host', stdout = subprocess.PIPE)
 	if rslt.stdout.decode('ascii').split("\n")[-2] == 'PLAYER 2 WON':
 		player2 += 1
 	else:
@@ -58,3 +62,4 @@ with open('./data/white-win.json', 'w') as file:
 	json.dump(p2state ,file)
 with open('./data/black-win.json', 'w') as file:
 	json.dump(p1state ,file)
+

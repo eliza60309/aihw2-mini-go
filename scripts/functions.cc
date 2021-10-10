@@ -12,94 +12,8 @@ int allybreath(bool[][5], short[][5], int, pair<int, int>);
 int get_legal(short[][5], short[][5], int, vector<pair<int, int> >&);
 int show_board(short[][5]);
 int call(int, short[][5], short[][5], pair<int, int> &, string, string, string);
+int diffboard(short[][5], short[][5]);
 
-int main(int argc, char *argv[])
-{
-	short previous[5][5] = {}; 
-	short board[5][5] = {};//yx
-	int phase = 1;//1: black 2: white
-	int step = 0;
-	int passed = false;
-	int endgame = 0;
-	int victory = 0;
-	//log.open("log", fstream::out | fstream::ate | fstream::app);
-	while(!victory)
-	{
-		if(step > 24 || endgame)
-		{
-			int black = 0, white = 0;
-			for(int i = 0; i < 5; i++)
-			{
-				for(int j = 0; j < 5; j++)
-					if(board[i][j] == 1)
-						black++;
-					else if(board[i][j] == 2)
-						white++;
-			}
-			if((double)white + 2.5 > black)
-				victory = 2;
-			else 
-				victory = 1;
-			endgame = true;
-			continue;
-		}
-		//cout << "----- Step " << step << ", Player " << phase << " -----" << endl;
-		//show_board(board);
-		pair<int, int> move;
-		if(phase == 1)
-			call(1, board, previous, move, "output.txt", "input.txt", argv[1]);
-		else 
-			call(2, board, previous, move, "output.txt", "input.txt", argv[2]);
-		int x = move.second;
-		int y = move.first;
-		vector<pair<int, int> >legal_moves;
-		get_legal(board, previous, phase, legal_moves);
-		//cout << "legal: " << legal_moves.size() << endl; 
-		bool legal = false;
-		if(y == -1)
-		{
-			show_board(board);
-			if(passed)
-			{
-				cout << "PASS & WON" << endl;
-				endgame = true;
-			}
-			else
-			{
-				passed = true;
-				step++;
-				phase = (phase == 1? 2: 1);
-			}
-			continue;
-		}
-		for(int i = 0; i < legal_moves.size(); i++)
-		{
-			if(legal_moves[i].first == y && legal_moves[i].second == x)
-			{
-				legal = true;
-				break;
-			}
-		}
-		if(legal)
-		{
-			for(int i = 0; i < 5; i++)
-				for(int j = 0; j < 5; j++)
-					previous[i][j] = board[i][j];
-			int captured = capture(board, phase, pair<int, int>(y, x));
-			board[y][x] = phase;
-			phase = (phase == 1? 2: 1);
-			passed = false;
-			step++;
-		}
-		else
-		{
-			//cout << ">>>>> ILLEGAL MOVE!! >>>>>" << endl;
-			victory = (phase == 1? 2: 1);
-			endgame = true;
-		}
-	}
-	cout << "PLAYER " << victory << " WON with " << step << " steps" << endl;
-}
 
 int call(int player, short board[][5], short previous[][5], pair<int, int> &ans, string input, string output, string cmd)
 {
@@ -331,4 +245,34 @@ int get_legal(short board[][5], short previous[][5], int phase, vector<pair<int,
 		}
 	}
 	return 0;
+}
+
+int diffboard(short board1[][5], short board2[][5])
+{
+	for(int i = 0; i < 5; k++)
+	{
+		for(int j = 0; j < 5; l++)
+		{
+			if(board1[i][j] != board2[i][j])
+				return true;
+		}
+	}
+	return false;
+}
+
+int eval(short board[][5])
+{
+	int black = 0, white = 0;
+	for(int i = 0; i < 5; i++)
+	{
+		for(int j = 0; j < 5; j++)
+			if(board[i][j] == 1)
+				black++;
+			else if(board[i][j] == 2)
+				white++;
+	}
+	if((double)white + 2.5 > black)
+		return 2;
+	else 
+		return 1;
 }

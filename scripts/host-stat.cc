@@ -13,7 +13,7 @@ int get_legal(short[][5], short[][5], int, vector<pair<int, int> >&);
 int show_board(short[][5]);
 int call(int, short[][5], short[][5], pair<int, int> &, string, string, string);
 
-int main()
+int main(int argc, char *argv[])
 {
 	short previous[5][5] = {}; 
 	short board[5][5] = {};//yx
@@ -25,7 +25,7 @@ int main()
 	//log.open("log", fstream::out | fstream::ate | fstream::app);
 	while(!victory)
 	{
-		if(step > 24)
+		if(step > 24 || endgame)
 		{
 			int black = 0, white = 0;
 			for(int i = 0; i < 5; i++)
@@ -47,9 +47,9 @@ int main()
 		//show_board(board);
 		pair<int, int> move;
 		if(phase == 1)
-			call(1, board, previous, move, "output.txt", "input.txt", "./bin/randomplayer");
+			call(1, board, previous, move, "output.txt", "input.txt", argv[1]);
 		else 
-			call(2, board, previous, move, "output.txt", "input.txt", "./bin/randomplayer");
+			call(2, board, previous, move, "output.txt", "input.txt", argv[2]);
 		int x = move.second;
 		int y = move.first;
 		vector<pair<int, int> >legal_moves;
