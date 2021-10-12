@@ -50,8 +50,12 @@ int main()
 	get_legal(board, previous, player, legal_moves);
 	if(legal_moves.size())
 	{
-		srand(time(NULL));
-		int i = rand() % legal_moves.size();
+		//srand(time(NULL));
+		//int i = rand() % legal_moves.size();
+		random_device dev;
+		mt19937 rng(dev());
+		uniform_int_distribution<mt19937::result_type> dist(0, legal_moves.size());
+		int i = dist(rng);
 		move(legal_moves[i]);
 	}
 	else
