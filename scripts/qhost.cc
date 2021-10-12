@@ -124,10 +124,10 @@ int main(int argc, char *argv[])
 	}
 	double max_q;
 	vector<qstate> qstates;
-	int qstate_id = -1;
 	for(int i = moves[victory - 1].size() - 1; i >= 0; i--)
 	{
-		cout << i << endl;
+		//cout << max_q << endl;
+		int qstate_id = -1;
 		qstate *q = NULL;
 		for(int j = 0; j < qstates.size(); j++)
 		{
@@ -157,6 +157,7 @@ int main(int argc, char *argv[])
 		{
 			qvalue newqvalue;
 			newqvalue.move = moves[victory - 1][i];
+			newqvalue.val = 0;
 			qstates[qstate_id].moves.push_back(newqvalue);
 			qmove_id = qstates[qstate_id].moves.size() - 1;
 		}
@@ -169,6 +170,14 @@ int main(int argc, char *argv[])
 		{
 			if(qstates[qstate_id].moves[j].val > max_q)
 				max_q = qstates[qstate_id].moves[j].val;
+		}
+	}
+	for(vector<qstate>::iterator i = qstates.begin(); i != qstates.end(); i++)
+	{
+		cout << i->state << ":" << endl;
+		for(vector<qvalue>::iterator j = i->moves.begin(); j != i->moves.end(); j++)
+		{
+			cout << "(" << j->move.first << "," << j->move.second << "): " << j->val << endl;
 		}
 	}
 	cout << "PLAYER " << victory << " WON with " << step << " steps" << endl;

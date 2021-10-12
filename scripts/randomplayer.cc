@@ -54,7 +54,7 @@ int main()
 		//int i = rand() % legal_moves.size();
 		random_device dev;
 		mt19937 rng(dev());
-		uniform_int_distribution<mt19937::result_type> dist(0, legal_moves.size());
+		uniform_int_distribution<mt19937::result_type> dist(0, legal_moves.size() - 1);
 		int i = dist(rng);
 		move(legal_moves[i]);
 	}
