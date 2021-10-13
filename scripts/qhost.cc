@@ -20,7 +20,7 @@ string encode(short[][5]);
 #define WIN_REWARD 1000
 
 
-class qvalue
+class qmove
 {
 	public:
 	pair<int, int>move;
@@ -30,10 +30,14 @@ class qvalue
 class qstate
 {
 	public:
-	qstate(){moves = vector<qvalue>();}
+	qstate(){moves = vector<qmove>();}
 	string state;
-	vector<qvalue> moves;
+	vector<qmove> moves;
 };
+
+vector<qstate>::iterator get_qstate(vector<qstate> &, string &);
+vector<qmove>::iterator get_qmove(vector<qmove> &, pair<int, int> &);
+
 
 int main(int argc, char *argv[])
 {
@@ -46,11 +50,12 @@ int main(int argc, char *argv[])
 	int victory = 0;
 	vector<string> states[2];
 	vector<pair<int, int> >moves[2];
+	int movecnt[2] = {};
 	//fstream p1q, p2q;
 	//if(p1q.open("p1q", fstream::in))
 	while(!victory)
 	{
-		if(step > 24 || endgame)
+		if(step >= 24 || endgame)
 		{
 			int black = 0, white = 0;
 			for(int i = 0; i < 5; i++)
@@ -89,6 +94,7 @@ int main(int argc, char *argv[])
 				states[phase - 1].push_back(encode(board));
 				moves[phase - 1].push_back(pair<int, int>(-1, -1));
 				passed = true;
+				movecnt[phase - 1]++;
 				step++;
 				phase = (phase == 1? 2: 1);
 			}
@@ -111,6 +117,7 @@ int main(int argc, char *argv[])
 					previous[i][j] = board[i][j];
 			int captured = capture(board, phase, pair<int, int>(y, x));
 			board[y][x] = phase;
+			movecnt[phase - 1]++;
 			phase = (phase == 1? 2: 1);
 			passed = false;
 			step++;
@@ -127,6 +134,10 @@ int main(int argc, char *argv[])
 	for(int i = moves[victory - 1].size() - 1; i >= 0; i--)
 	{
 		//cout << max_q << endl;
+
+		//get qstate
+		vector<qstate>::iterator i_qstate = get_qstate(qstates, states[victory - 1][i]);
+		/*
 		int qstate_id = -1;
 		qstate *q = NULL;
 		for(int j = 0; j < qstates.size(); j++)
@@ -144,10 +155,14 @@ int main(int argc, char *argv[])
 			qstates.push_back(newqstate);
 			qstate_id = qstates.size() - 1;
 		}
+		*/
+		//get qmove
+		vector<qmove>::iterator i_qmove = get_qmove(i_qstate->moves, moves[victory - 1][i]);
+		/*
 		int qmove_id = -1;
-		for(int j = 0; j < qstates[qstate_id].moves.size(); j++)
+		for(int j = 0; j < iter->moves.size(); j++)
 		{
-			if(qstates[qstate_id].moves[j].move.first == moves[victory - 1][i].first && qstates[qstate_id].moves[j].move.second == moves[victory - 1][i].second)
+			if(iter->moves[j].move.first == moves[victory - 1][i].first && iter->moves[j].move.second == moves[victory - 1][i].second)
 			{
 				qmove_id = j;
 				break;
@@ -158,29 +173,32 @@ int main(int argc, char *argv[])
 			qvalue newqvalue;
 			newqvalue.move = moves[victory - 1][i];
 			newqvalue.val = 0;
-			qstates[qstate_id].moves.push_back(newqvalue);
-			qmove_id = qstates[qstate_id].moves.size() - 1;
+			iter->moves.push_back(newqvalue);
+			qmove_id = iter->moves.size() - 1;
 		}
+		*/
+		//calc reward
 		if(i == moves[victory - 1].size() - 1)
-			qstates[qstate_id].moves[qmove_id].val = WIN_REWARD;
+			i_qmove->val = WIN_REWARD;
 		else
-			qstates[qstate_id].moves[qmove_id].val = qstates[qstate_id].moves[qmove_id].val * (1.0 - ALPHA) + ALPHA * GAMMA * max_q;
+			i_qmove->val = i_qmove->val * (1.0 - ALPHA) + ALPHA * GAMMA * max_q;
 		max_q = 0;
-		for(int j = 0; j < qstates[qstate_id].moves.size(); j++)
+		for(int j = 0; j < i_qstate->moves.size(); j++)
 		{
-			if(qstates[qstate_id].moves[j].val > max_q)
-				max_q = qstates[qstate_id].moves[j].val;
+			if(i_qstate->moves[j].val > max_q)
+				max_q = i_qstate->moves[j].val;
 		}
 	}
 	for(vector<qstate>::iterator i = qstates.begin(); i != qstates.end(); i++)
 	{
 		cout << i->state << ":" << endl;
-		for(vector<qvalue>::iterator j = i->moves.begin(); j != i->moves.end(); j++)
+		for(vector<qmove>::iterator j = i->moves.begin(); j != i->moves.end(); j++)
 		{
 			cout << "(" << j->move.first << "," << j->move.second << "): " << j->val << endl;
 		}
 	}
 	cout << "PLAYER " << victory << " WON with " << step << " steps" << endl;
+	cout << "BLACK: " << movecnt[0] << " WHITE: " << movecnt[1] << endl;
 }
 
 string encode(short board[][5])
@@ -192,6 +210,46 @@ string encode(short board[][5])
 			s.push_back(board[i][j] + '0');
 	}
 	return s;
+}
+
+vector<qmove>::iterator get_qmove(vector<qmove> &qmoves, pair<int, int> &move)
+{
+	vector<qmove>::iterator i;
+	for(i = qmoves.begin(); i != qmoves.end(); i++)
+	{
+		if(i->move.first == move.first && i->move.second == move.second)
+			break;
+	}
+	if(i == qmoves.end())
+	{
+		qmove newqmove;
+		newqmove.move = move;
+		newqmove.val = 0;
+		qmoves.push_back(newqmove);
+		i = qmoves.end();
+		i--;
+	}
+	return i;
+}
+
+vector<qstate>::iterator get_qstate(vector<qstate> &qstates, string &state)
+{
+	int qstate_id = -1;
+	vector<qstate>::iterator i;
+	for(i = qstates.begin(); i != qstates.end(); i++)
+	{
+		if(i->state == state)
+			break;
+	}
+	if(i == qstates.end())
+	{
+		qstate newqstate;
+		newqstate.state = state;
+		qstates.push_back(newqstate);
+		i = qstates.end();
+		i--;
+	}
+	return i;
 }
 
 int call(int player, short board[][5], short previous[][5], pair<int, int> &ans, string input, string output, string cmd)

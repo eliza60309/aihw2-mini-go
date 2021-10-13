@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
 	//log.open("log", fstream::out | fstream::ate | fstream::app);
 	while(!victory)
 	{
-		if(step > 24 || endgame)
+		if(step >= 24 || endgame)
 		{
 			int black = 0, white = 0;
 			for(int i = 0; i < 5; i++)
