@@ -58,12 +58,8 @@ int main(int argc, char *argv[])
 		bool legal = false;
 		if(y == -1)
 		{
-			show_board(board);
 			if(passed)
-			{
-				cout << "PASS & WON" << endl;
 				endgame = true;
-			}
 			else
 			{
 				passed = true;
@@ -98,7 +94,8 @@ int main(int argc, char *argv[])
 			endgame = true;
 		}
 	}
-	cout << "PLAYER " << victory << " WON with " << step << " steps" << endl;
+	//cout << "PLAYER " << victory << " WON with " << step << " steps" << endl;
+	cout << victory << " " << step << endl;
 }
 
 int call(int player, short board[][5], short previous[][5], pair<int, int> &ans, string input, string output, string cmd)

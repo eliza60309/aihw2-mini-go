@@ -4,6 +4,7 @@
 //#include <cstring>
 //#include <fstream>
 #include <bits/stdc++.h>
+#include <sys/stat.h>
 
 using namespace std;
 
@@ -14,6 +15,7 @@ int get_legal(short[][5], short[][5], int, vector<pair<int, int> >&);
 int show_board(short[][5]);
 int call(int, short[][5], short[][5], pair<int, int> &, string, string, string);
 string encode(short[][5]);
+bool exists(const string &);
 
 #define ALPHA 0.7
 #define GAMMA 0.9
@@ -37,7 +39,8 @@ class qstate
 
 vector<qstate>::iterator get_qstate(vector<qstate> &, string &);
 vector<qmove>::iterator get_qmove(vector<qmove> &, pair<int, int> &);
-
+int load(qstate &myqstate, string &dir);
+int save(qstate &myqstate, string &dir);
 
 int main(int argc, char *argv[])
 {
@@ -48,6 +51,7 @@ int main(int argc, char *argv[])
 	int passed = false;
 	int endgame = 0;
 	int victory = 0;
+	int black = 0, white = 0;
 	vector<string> states[2];
 	vector<pair<int, int> >moves[2];
 	int movecnt[2] = {};
@@ -57,7 +61,6 @@ int main(int argc, char *argv[])
 	{
 		if(step >= 24 || endgame)
 		{
-			int black = 0, white = 0;
 			for(int i = 0; i < 5; i++)
 			{
 				for(int j = 0; j < 5; j++)
@@ -129,76 +132,95 @@ int main(int argc, char *argv[])
 			endgame = true;
 		}
 	}
+	string datadir = (argc <= 3? "data": argv[3]);
+	if(datadir[datadir.length() - 1] != '/')
+		datadir += '/';
+	string winnerdir = (victory == 1? "black/": "white/");
 	double max_q;
-	vector<qstate> qstates;
 	for(int i = moves[victory - 1].size() - 1; i >= 0; i--)
 	{
-		//cout << max_q << endl;
-
+		qstate cur_qstate, tmpstate;
+		cur_qstate.state = states[victory - 1][i];
+		tmpstate.state = states[victory - 1][i];
 		//get qstate
-		vector<qstate>::iterator i_qstate = get_qstate(qstates, states[victory - 1][i]);
-		/*
-		int qstate_id = -1;
-		qstate *q = NULL;
-		for(int j = 0; j < qstates.size(); j++)
-		{
-			if(qstates[j].state == states[victory - 1][i])
-			{
-				qstate_id = j;
-				break;
-			}
-		}
-		if(qstate_id == -1)
-		{
-			qstate newqstate;
-			newqstate.state = states[victory - 1][i];
-			qstates.push_back(newqstate);
-			qstate_id = qstates.size() - 1;
-		}
-		*/
+		//vector<qstate>::iterator i_qstate = get_qstate(qstates, states[victory - 1][i]);
+		string filedir = datadir + winnerdir + "step" + to_string(i + 1) + "/" + states[victory - 1][i] + ".txt";
+		//load file
+		if(exists(filedir))
+			load(cur_qstate, filedir);
 		//get qmove
-		vector<qmove>::iterator i_qmove = get_qmove(i_qstate->moves, moves[victory - 1][i]);
-		/*
-		int qmove_id = -1;
-		for(int j = 0; j < iter->moves.size(); j++)
-		{
-			if(iter->moves[j].move.first == moves[victory - 1][i].first && iter->moves[j].move.second == moves[victory - 1][i].second)
-			{
-				qmove_id = j;
-				break;
-			}
-		}
-		if(qmove_id == -1)
-		{
-			qvalue newqvalue;
-			newqvalue.move = moves[victory - 1][i];
-			newqvalue.val = 0;
-			iter->moves.push_back(newqvalue);
-			qmove_id = iter->moves.size() - 1;
-		}
-		*/
+		vector<qmove>::iterator i_qmove = get_qmove(cur_qstate.moves, moves[victory - 1][i]);
 		//calc reward
 		if(i == moves[victory - 1].size() - 1)
 			i_qmove->val = WIN_REWARD;
 		else
 			i_qmove->val = i_qmove->val * (1.0 - ALPHA) + ALPHA * GAMMA * max_q;
 		max_q = 0;
-		for(int j = 0; j < i_qstate->moves.size(); j++)
+		for(int j = 0; j < cur_qstate.moves.size(); j++)
 		{
-			if(i_qstate->moves[j].val > max_q)
-				max_q = i_qstate->moves[j].val;
+			if(cur_qstate.moves[j].val > max_q)
+				max_q = cur_qstate.moves[j].val;
 		}
+		save(cur_qstate, filedir);
+		/*cout << cur_qstate.state << ":" << endl;
+		for(vector<qmove>::iterator j = cur_qstate.moves.begin(); j != cur_qstate.moves.end(); j++)
+			cout << "(" << j->move.first << "," << j->move.second << "): " << j->val << endl;
+		*/
 	}
-	for(vector<qstate>::iterator i = qstates.begin(); i != qstates.end(); i++)
+	
+	//display the qstate table
+	/*for(vector<qstate>::iterator i = qstates.begin(); i != qstates.end(); i++)
 	{
 		cout << i->state << ":" << endl;
 		for(vector<qmove>::iterator j = i->moves.begin(); j != i->moves.end(); j++)
 		{
 			cout << "(" << j->move.first << "," << j->move.second << "): " << j->val << endl;
 		}
-	}
+	}*/
 	cout << "PLAYER " << victory << " WON with " << step << " steps" << endl;
-	cout << "BLACK: " << movecnt[0] << " WHITE: " << movecnt[1] << endl;
+	//cout << "Black: " << black << " White: " << white << endl;
+	//cout << "BLACK: " << movecnt[0] << " WHITE: " << movecnt[1] << endl;
+}
+
+int load(qstate &myqstate, string &dir)
+{
+	fstream in;
+	in.open(dir.c_str(), fstream::in);
+	int n;
+	in >> n;
+	pair<int, int> move;
+	double value;
+	qmove q;
+	for(int i = 0; i < n; i++)
+	{
+		in >> move.first >> move.second >> q.val;
+		q.move = move;
+		myqstate.moves.push_back(q);
+	}
+	in.close();
+	return 0;
+}
+
+int save(qstate &myqstate, string &dir)
+{
+	fstream out;
+	out.open(dir.c_str(), fstream::out);
+	out << myqstate.moves.size() << endl;
+	for(int i = 0; i < myqstate.moves.size(); i++)
+	{
+		out << myqstate.moves[i].move.first << " ";
+		out << myqstate.moves[i].move.second << " ";
+		out << myqstate.moves[i].val << endl;
+	}
+	out.close();
+	return 0;
+}
+
+
+bool exists(const string &s)
+{
+	struct stat buf;
+	return !stat(s.c_str(), &buf);
 }
 
 string encode(short board[][5])

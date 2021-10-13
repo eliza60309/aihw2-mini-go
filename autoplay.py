@@ -2,26 +2,26 @@ import subprocess
 import os
 
 #Just keep playing
-'''
+
 for i in range(10000):
-	rslt = subprocess.run(['./bin/host', './bin/randomplayer', './bin/randomplayer'])
-'''
+	rslt = subprocess.run(['./bin/qhost', './bin/randomplayer', './bin/randomplayer'])
+
 #Counts the winning
 '''
 player1 = 0
 player2 = 0
 for i in range(100):
-	rslt = subprocess.run('./bin/host', stdout = subprocess.PIPE)
-	if rslt.stdout.decode('ascii').split("\n")[-2] == 'PLAYER 2 WON':
+	rslt = subprocess.run(['./bin/qhost', './bin/randomplayer', './bin/randomplayer'], stdout = subprocess.PIPE)
+	if rslt.stdout.decode('ascii').split(" ")[0] == '2':
 		player2 += 1
 	else:
 		player1 += 1
 
 	print( "\b" * 30 + "Player 1: %d Player 2: %d" % (player1,player2))
+
 '''
-
 #Encodes the winning state and categorize
-
+'''
 import json
 from pathlib import Path
 
@@ -62,4 +62,4 @@ with open('./data/white-win.json', 'w') as file:
 	json.dump(p2state ,file)
 with open('./data/black-win.json', 'w') as file:
 	json.dump(p1state ,file)
-
+'''
