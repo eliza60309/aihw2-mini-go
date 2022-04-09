@@ -1,8 +1,4 @@
-#include <iostream>
-#include <utility>
-#include <vector>
-#include <cstring>
-#include <fstream>
+#include <bits/stdc++.h>
 
 using namespace std;
 
@@ -10,159 +6,229 @@ int enemybreath(bool[][5], short[][5], int, pair<int, int>, vector<pair<int, int
 int capture(short[][5], int, pair<int, int>);
 int allybreath(bool[][5], short[][5], int, pair<int, int>);
 int get_legal(short[][5], short[][5], int, vector<pair<int, int> >&);
-int show_board(short[][5]);
-int call(int, short[][5], short[][5], pair<int, int> &, string, string, string);
+int diffboard(short[][5], short[][5]);
+int move(pair<int, int>);
+int eval(short[][5]);
+int get_point(short[][5], int);
+int dfs(short[][5], short[][5], int, int, int, pair<int, int> &, pair<int, int>);
 
-int main(int argc, char *argv[])
+static long long int iter_cnt = 0;
+int dfs_depth = 5;
+int step;
+int threshold = 8;//after threshold weight will not work
+
+int main()
 {
 	short previous[5][5] = {}; 
 	short board[5][5] = {};//yx
-	int phase = 1;//1: black 2: white
-	int step = 0;
-	int passed = false;
-	int endgame = 0;
-	int victory = 0;
-	//log.open("log", fstream::out | fstream::ate | fstream::app);
-	while(!victory)
-	{
-		//show_board(board);
-		if(step >= 24 || endgame)
-		{
-			int black = 0, white = 0;
-			for(int i = 0; i < 5; i++)
-			{
-				for(int j = 0; j < 5; j++)
-					if(board[i][j] == 1)
-						black++;
-					else if(board[i][j] == 2)
-						white++;
-			}
-			if((double)white + 2.5 > black)
-				victory = 2;
-			else 
-				victory = 1;
-			endgame = true;
-			continue;
-		}
-		//cout << "----- Step " << step << ", Player " << phase << " -----" << endl;
-		//show_board(board);
-		pair<int, int> move;
-		if(phase == 1)
-			call(1, board, previous, move, "output.txt", "input.txt", argv[1]);
-		else 
-			call(2, board, previous, move, "output.txt", "input.txt", argv[2]);
-		int x = move.second;
-		int y = move.first;
-		vector<pair<int, int> >legal_moves;
-		get_legal(board, previous, phase, legal_moves);
-		//cout << "legal: " << legal_moves.size() << endl; 
-		bool legal = false;
-		if(y == -1)
-		{
-			if(passed)
-				endgame = true;
-			else
-			{
-				passed = true;
-				step++;
-				phase = (phase == 1? 2: 1);
-			}
-			continue;
-		}
-		for(int i = 0; i < legal_moves.size(); i++)
-		{
-			if(legal_moves[i].first == y && legal_moves[i].second == x)
-			{
-				legal = true;
-				break;
-			}
-		}
-		if(legal)
-		{
-			for(int i = 0; i < 5; i++)
-				for(int j = 0; j < 5; j++)
-					previous[i][j] = board[i][j];
-			int captured = capture(board, phase, pair<int, int>(y, x));
-			board[y][x] = phase;
-			phase = (phase == 1? 2: 1);
-			passed = false;
-			step++;
-		}
-		else
-		{
-			//cout << ">>>>> ILLEGAL MOVE!! >>>>>" << endl;
-			victory = (phase == 1? 2: 1);
-			endgame = true;
-		}
-	}
-	//cout << "PLAYER " << victory << " WON with " << step << " steps" << endl;
-	cout << victory << " " << step << endl;
-}
-
-int call(int player, short board[][5], short previous[][5], pair<int, int> &ans, string input, string output, string cmd)
-{
-	fstream in;
-	fstream out;
-	out.open(output.c_str(), fstream::out);
-	out << player << endl;
+	short empty[5][5] = {};
+	int player, step;
+	fstream in, stepfile;
+	while(!in.is_open())
+		in.open("input.txt", fstream::in);
+	in >> player;
 	for(int i = 0; i < 5; i++)
 	{
 		for(int j = 0; j < 5; j++)
-			out << previous[i][j];
-		out << endl;
+		{
+			char c = 0;
+			while(c < '0' || c > '9')
+				in >> c;
+			previous[i][j] = c - '0';
+		}
 	}
 	for(int i = 0; i < 5; i++)
 	{
 		for(int j = 0; j < 5; j++)
-			out << board[i][j];
-		out << endl;
-	}
-	out.close();
-	char c[3];
-	if(cmd == "me")
-	{
-		int a, b;
-		cin >> a >> b;
-		if(a == -1 || b == -1)
-			c[1] = 'a';
-		else
 		{
-			c[0] = a + '0';
-			c[1] = ',';
-			c[2] = b + '0';
+			char c = 0;
+			while(c < '0' || c > '9')
+				in >> c;
+			board[i][j] = c - '0';
 		}
-	}
-	else
-	{
-		system(cmd.c_str());
-		while(!in.is_open())
-			in.open(input.c_str(), fstream::in);
-		in >> c[0] >> c[1] >> c[2];
-	}
-	if(c[1] != ',')
-		ans.first = -1;
-	else
-	{
-		ans.first = c[0] - '0';
-		ans.second = c[2] - '0';
 	}
 	in.close();
-	remove(input.c_str());
-	return 0;
+	if(!diffboard(previous, empty))
+	{
+		while(!stepfile.is_open())
+			stepfile.open("step.txt", fstream::out);
+		if(player == 1)
+		{
+			step = 1;
+			stepfile << 1;
+		}
+		else
+		{
+			step = 2;
+			stepfile << 2;
+		}
+		stepfile.close();
+	}
+	else
+	{
+		while(!stepfile.is_open())
+			stepfile.open("step.txt", fstream::in);
+		stepfile >> step;
+		stepfile.close();
+		step += 2;
+		while(!stepfile.is_open())
+			stepfile.open("step.txt", fstream::out);
+		stepfile << step;
+		stepfile.close();
+	}
+	if(!diffboard(board, previous) && eval(board) == player)
+	{
+		move(pair<int, int>(-1, -1));
+		return 0;
+	}
+	pair<int, int> p, q(-99999, 99999);
+	vector<pair<int, int> > legal;
+	get_legal(board, previous, player, legal);
+	if(step < 10)
+		dfs_depth = 4;
+	else if(step < 18)
+		dfs_depth = 5;
+	else
+		dfs_depth = 24 - step + 1;
+	cout << step << " " << dfs_depth << endl;
+	dfs(board, previous, player, 1, dfs_depth, p, q);
+	move(p);
+	//cout << iter_cnt << " iters" << endl;
+	/*vector<pair<int, int> >legal_moves;
+	get_legal(board, previous, player, legal_moves);
+	if(legal_moves.size())
+	{
+		//srand(time(NULL));
+		//int i = rand() % legal_moves.size();
+		random_device dev;
+		mt19937 rng(dev());
+		uniform_int_distribution<mt19937::result_type> dist(0, legal_moves.size() - 1);
+		int i = dist(rng);
+		move(legal_moves[i]);
+	}
+	else
+		move(pair<int, int>(-1, -1));*/
 }
 
-int show_board(short board[][5])
+int dfs(short board[][5], short previous[][5], int phase, int max/*0: min 1: max*/, int depth, pair<int, int> &ret, pair<int, int> ab)
 {
+	if(depth == 0)
+	{
+		iter_cnt++;
+		return get_point(board, max? phase: (phase == 2? 1: 2));
+	}
+	vector<pair<int, int> > legal;
+	get_legal(board, previous, phase, legal);
+	pair<int, int> dummy;
+	int save = dfs(board, board, (phase == 1? 2: 1), !max, depth - 1, dummy, ab);
+	ret = pair<int, int>(-1, -1);
+	for(int i = 0; i < legal.size(); i++)
+	{
+		short tmpboard[5][5];
+		memcpy(tmpboard, board, sizeof(short) * 25);
+		int captured = capture(tmpboard, phase, legal[i]);
+		tmpboard[legal[i].first][legal[i].second] = phase;
+		int val = dfs(tmpboard, board, (phase == 1? 2: 1), !max, depth - 1, dummy, ab);
+		if(max)
+		{
+			if(val > save)
+			{
+				save = val;
+				ret = legal[i];
+			}
+			if(val > ab.second)
+				return val;
+			ab.first = (ab.first > val? ab.first: val);
+		}
+		else//min
+		{
+		 	if(val < save)
+			{
+				save = val;
+				ret = legal[i];
+			}
+			if(val < ab.first)
+				return val;
+			ab.second = (ab.second < val? ab.second: val);
+		}
+		/*if((max && val > save) || (!max && val < save))
+		{
+			save = val;
+			ret = legal[i];
+		}*/
+	}
+	return save;
+	//int captured = capture(board, phase, pair<int, int>(y, x));
+	//board[y][x] = phase;
+		
+}
+
+int get_point(short board[][5], int phase)
+{
+	short value1[5][5] =
+	{{1,2,3,2,1},
+	{2,4,5,4,2},
+	{3,5,3,5,3},
+	{2,4,5,4,2},
+	{1,2,3,2,1}};
+	short value2[5][5] =
+	{{1,1,1,1,1},
+	{1,1,1,1,1},
+	{1,1,1,1,1},
+	{1,1,1,1,1},
+	{1,1,1,1,1}};
+	int point = 0;
 	for(int i = 0; i < 5; i++)
 	{
 		for(int j = 0; j < 5; j++)
-			cout << board[i][j] << " ";
-		cout << endl;
+		{
+			int value;
+			if(step < threshold)
+				value = value1[i][j];
+			else
+				value = 1;
+			if(board[i][j])
+			{
+				if(board[i][j] == phase)
+					point += value;
+				else
+					point -= value;
+			}
+			/*else
+			{
+				vector<int> directions;
+				if(i > 0)
+					directions.push_back(board[i - 1][j]);
+				if(i < 4)
+					directions.push_back(board[i + 1][j]);
+				if(j > 0)
+					directions.push_back(board[i][j - 1]);
+				if(j < 4)
+					directions.push_back(board[i][j + 1]);
+				bool same = true;
+				for(int k = 1; k < directions.size(); k++)
+				{
+					if(directions[k] != directions[k - 1] || directions[k] == 0)
+					{
+						same = false;
+						break;
+					}
+				}
+				if(same)
+				{
+					if(directions[0] == phase)
+						point += value;
+					else
+						point -= value;
+				}
+					
+			}*/
+		}
 	}
-	return 0;
+	return point;
 }
 
-int capture(short board[][5], int phase, pair<int, int>pos)
+int capture(short board[][5], int phase, pair<int, int> pos)
 {
 	phase = (phase == 1? 2: 1);
 	bool counted[4][5][5] = {};
@@ -321,20 +387,7 @@ int get_legal(short board[][5], short previous[][5], int phase, vector<pair<int,
 				if(capture(tmpboard, phase, pair<int, int>(i, j)) == 1)
 				{
 					tmpboard[i][j] = phase;
-					diff = false;
-					for(int k = 0; k < 5; k++)
-					{
-						for(int l = 0; l < 5; l++)
-						{
-							if(tmpboard[k][l] != previous[k][l])
-							{
-								diff = true;
-								break;
-							}
-						}
-						if(diff)
-							break;
-					}
+					diff = diffboard(tmpboard, previous);
 				}
 				if(!diff)
 					continue;
@@ -344,5 +397,47 @@ int get_legal(short board[][5], short previous[][5], int phase, vector<pair<int,
 			}
 		}
 	}
+	return 0;
+}
+
+int diffboard(short board1[][5], short board2[][5])
+{
+	for(int i = 0; i < 5; i++)
+	{
+		for(int j = 0; j < 5; j++)
+		{
+			if(board1[i][j] != board2[i][j])
+				return true;
+		}
+	}
+	return false;
+}
+
+int eval(short board[][5])
+{
+	int black = 0, white = 0;
+	for(int i = 0; i < 5; i++)
+	{
+		for(int j = 0; j < 5; j++)
+			if(board[i][j] == 1)
+				black++;
+			else if(board[i][j] == 2)
+				white++;
+	}
+	if((double)white + 2.5 > black)
+		return 2;
+	else 
+		return 1;
+}
+
+int move(pair<int, int> m)
+{
+	fstream out;
+	out.open("output.txt", fstream::out);
+	if(m.first == -1 || m.second == -1)
+		out << "PASS";
+	else
+		out << m.first << "," << m.second;
+	out.close();
 	return 0;
 }

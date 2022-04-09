@@ -162,10 +162,11 @@ int main(int argc, char *argv[])
 				max_q = cur_qstate.moves[j].val;
 		}
 		save(cur_qstate, filedir);
-		/*cout << cur_qstate.state << ":" << endl;
-		for(vector<qmove>::iterator j = cur_qstate.moves.begin(); j != cur_qstate.moves.end(); j++)
+		load(tmpstate, filedir);
+		cout << tmpstate.state << ":" << endl;
+		for(vector<qmove>::iterator j = tmpstate.moves.begin(); j != tmpstate.moves.end(); j++)
 			cout << "(" << j->move.first << "," << j->move.second << "): " << j->val << endl;
-		*/
+		
 	}
 	
 	//display the qstate table
